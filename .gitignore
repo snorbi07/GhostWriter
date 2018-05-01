@@ -4,6 +4,7 @@
 target
 bin
 build
+out
 .gradle
 .classpath
 
