@@ -1,0 +1,81 @@
+apply plugin: "maven"
+apply plugin: "signing"
+
+
+dependencies {
+    compile "io.ghostwriter:ghostwriter-api-java:${project.ext.ghostwriterApiVersion}"
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from tasks.javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+artifacts {
+    archives jar
+
+    archives javadocJar
+    archives sourcesJar
+}
+
+signing {
+    required {
+        gradle.taskGraph.hasTask("uploadArchives")
+    }
+
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: mavenLocal().url)
+
+            if (project.ext.doUploadToSonatype) {
+                repository(url: project.ext.sonatypeUrl) {
+                    authentication(userName: project.ext.sonatypeUserName, password: project.ext.sonatypePassword)
+                }
+            }
+
+            pom.project {
+                name 'GhostWriter'
+                packaging 'jar'
+                description 'Runtime module for capturing application state in case of an unexpected error'
+                url project.ext.ghostwriterUrl
+
+                scm {
+                    url project.ext.ghostwriterScm
+                    connection project.ext.ghostwriterUrl
+                    developerConnection project.ext.ghostwriterScm
+                }
+
+                licenses {
+                    license {
+                        name project.ext.ghostwriterLicense
+                        url project.ext.ghostwriterLicenseUrl
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id project.ext.ghostwriterDeveloperId
+                        name project.ext.ghostwriterDeveloperName
+                        email project.ext.ghostwriterDeveloperEmail
+                    }
+                }
+
+            }
+        }
+    }
+}
